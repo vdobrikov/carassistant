@@ -1,0 +1,38 @@
+### overriding config ###
+/config/application.properties
+
+### build ###
+.gradle
+/build/
+!gradle/wrapper/gradle-wrapper.jar
+/out/
+
+### Logs ###
+*.log
+
+### OSX ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
