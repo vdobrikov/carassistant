@@ -32,13 +32,18 @@ public class MongoDbRideService implements RideService {
     }
 
     @Override
-    public List<Ride> findAllByState(Ride.State state) {
-        return rideRepository.findAllByState(state);
+    public List<Ride> findAllByStatus(Ride.Status status) {
+        return rideRepository.findAllByStatus(status);
     }
 
     @Override
     public List<Ride> findAllByOwnerId(String ownerId) {
         return rideRepository.findAllByOwnerId(ownerId);
+    }
+
+    @Override
+    public Ride findOneByOwnerIdAndStatus(String ownerId, Ride.Status status) {
+        return rideRepository.findOneByOwnerIdAndStatus(ownerId, status);
     }
 
     @Override

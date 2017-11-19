@@ -11,8 +11,9 @@ import java.util.Optional;
 public interface RideService {
     Optional<Ride> findById(String id);
     List<Ride> findAll();
-    List<Ride> findAllByState(Ride.State state);
+    List<Ride> findAllByStatus(Ride.Status status);
     List<Ride> findAllByOwnerId(String ownerId);
+    Ride findOneByOwnerIdAndStatus(String ownerId, Ride.Status status);
     Optional<Ride> findLastByOwnerId(String ownerId);
     Ride save(Ride ride);
     void delete(Ride ride);

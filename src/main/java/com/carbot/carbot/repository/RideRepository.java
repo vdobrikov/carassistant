@@ -10,6 +10,7 @@ import java.util.List;
  */
 public interface RideRepository extends MongoRepository<Ride, String> {
     List<Ride> findAllByOwnerId(String ownerId);
-    List<Ride> findAllByState(Ride.State state);
+    List<Ride> findAllByStatus(Ride.Status status);
+    Ride findOneByOwnerIdAndStatus(String ownerId, Ride.Status status);
     Ride findTopByOwnerIdOrderByCreatedDateDesc(String ownerId);
 }

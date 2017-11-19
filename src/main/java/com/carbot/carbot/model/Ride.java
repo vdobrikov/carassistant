@@ -25,20 +25,30 @@ public class Ride {
     private LocalDateTime lastModifiedDate;
 
     private String ownerId;
-    private String pointFrom;
-    private String pointTo;
-    private Set<String> waypoints;
-    private int seats;
+    private String departurePoint;
+    private String destinationPoint;
+    private int freeSeats;
     private Set<String> companions;
-    private LocalDateTime date;
+    private LocalDateTime departureDate;
     private String comment;
-    private State state;
-
-    private boolean exclusive;
-    private Set<String> candidates;
+    private Status status;
 
     public Ride() {
-        setState(State.INIT);
+        setStatus(Status.INIT);
+    }
+
+    public Ride(String ownerId, String departurePoint, String destinationPoint, int freeSeats, LocalDateTime departureDate, String comment, Status status) {
+        this.ownerId = ownerId;
+        this.departurePoint = departurePoint;
+        this.destinationPoint = destinationPoint;
+        this.freeSeats = freeSeats;
+        this.departureDate = departureDate;
+        this.comment = comment;
+        this.status = status;
+    }
+
+    public static Ride.RideBuilder builder() {
+        return new Ride.RideBuilder();
     }
 
     public String getId() {
@@ -53,39 +63,28 @@ public class Ride {
         this.ownerId = ownerId;
     }
 
-    public String getPointFrom() {
-        return pointFrom;
+    public String getDeparturePoint() {
+        return departurePoint;
     }
 
-    public void setPointFrom(String pointFrom) {
-        this.pointFrom = pointFrom;
+    public void setDeparturePoint(String departurePoint) {
+        this.departurePoint = departurePoint;
     }
 
-    public String getPointTo() {
-        return pointTo;
+    public String getDestinationPoint() {
+        return destinationPoint;
     }
 
-    public void setPointTo(String pointTo) {
-        this.pointTo = pointTo;
+    public void setDestinationPoint(String destinationPoint) {
+        this.destinationPoint = destinationPoint;
     }
 
-    public Set<String> getWaypoints() {
-        if (waypoints == null) {
-            waypoints = new HashSet<>();
-        }
-        return waypoints;
+    public int getFreeSeats() {
+        return freeSeats - getCompanions().size();
     }
 
-    public void setWaypoints(Set<String> waypoints) {
-        this.waypoints = waypoints;
-    }
-
-    public int getSeats() {
-        return seats - getCompanions().size();
-    }
-
-    public void setSeats(int seats) {
-        this.seats = seats;
+    public void setFreeSeats(int freeSeats) {
+        this.freeSeats = freeSeats;
     }
 
     public Set<String> getCompanions() {
@@ -95,20 +94,16 @@ public class Ride {
         return companions;
     }
 
-    public void setCompanions(Set<String> companions) {
-        this.companions = companions;
-    }
-
     public void addCompanion(String userId) {
         getCompanions().add(userId);
     }
 
-    public LocalDateTime getDate() {
-        return date;
+    public LocalDateTime getDepartureDate() {
+        return departureDate;
     }
 
-    public void setDate(LocalDateTime date) {
-        this.date = date;
+    public void setDepartureDate(LocalDateTime departureDate) {
+        this.departureDate = departureDate;
     }
 
     public String getComment() {
@@ -119,40 +114,86 @@ public class Ride {
         this.comment = comment;
     }
 
-    public boolean isExclusive() {
-        return exclusive;
+    public Status getStatus() {
+        return status;
     }
 
-    public void setExclusive(boolean exclusive) {
-        this.exclusive = exclusive;
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
-    public Set<String> getCandidates() {
-        if (candidates == null) {
-            candidates = new HashSet<>();
-        }
-        return candidates;
-    }
-
-    public void setCandidates(Set<String> candidates) {
-        this.candidates = candidates;
-    }
-
-    public State getState() {
-        return state;
-    }
-
-    public void setState(State state) {
-        this.state = state;
-    }
-
-    public enum State {
+    public enum Status {
         INIT,
-        ASK_FROM,
-        SAVE_FROM_AND_ASK_TO,
-        SAVE_TO_AND_ASK_DATE,
-        SAVE_DATE_AND_ASK_SEATS,
-        SAVE_SEATS_AND_COMPLETE,
-        READY
+        PENDING_CONFIRMATION,
+        READY,
+        CANCELLED,
+        STALE,
+        DELETED
+    }
+
+    @Override
+    public String toString() {
+        return "Ride{" +
+            "id='" + id + '\'' +
+            ", createdDate=" + createdDate +
+            ", lastModifiedDate=" + lastModifiedDate +
+            ", ownerId='" + ownerId + '\'' +
+            ", departurePoint='" + departurePoint + '\'' +
+            ", destinationPoint='" + destinationPoint + '\'' +
+            ", freeSeats=" + freeSeats +
+            ", companions=" + companions +
+            ", departureDate=" + departureDate +
+            ", comment='" + comment + '\'' +
+            ", status=" + status +
+            '}';
+    }
+
+    public static class RideBuilder {
+        private String ownerId;
+        private String departurePoint;
+        private String destinationPoint;
+        private int freeSeats;
+        private LocalDateTime departureDate;
+        private String comment;
+        private Status status;
+
+        public Ride.RideBuilder setOwnerId(String ownerId) {
+            this.ownerId = ownerId;
+            return this;
+        }
+
+        public Ride.RideBuilder setDeparturePoint(String departurePoint) {
+            this.departurePoint = departurePoint;
+            return this;
+        }
+
+        public Ride.RideBuilder setDestinationPoint(String destinationPoint) {
+            this.destinationPoint = destinationPoint;
+            return this;
+        }
+
+        public Ride.RideBuilder setFreeSeats(int freeSeats) {
+            this.freeSeats = freeSeats;
+            return this;
+        }
+
+        public Ride.RideBuilder setDepartureDate(LocalDateTime departureDate) {
+            this.departureDate = departureDate;
+            return this;
+        }
+
+        public Ride.RideBuilder setComment(String comment) {
+            this.comment = comment;
+            return this;
+        }
+
+        public Ride.RideBuilder setStatus(Status status) {
+            this.status = status;
+            return this;
+        }
+
+        public Ride build() {
+            return new Ride(ownerId, departurePoint, destinationPoint, freeSeats, departureDate, comment, status);
+        }
     }
 }

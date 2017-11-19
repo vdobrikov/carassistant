@@ -12,6 +12,9 @@ buildscript {
 
 ext {
 	jbotVersion = '3.0.2'
+	jslackVersion = '1.0.14'
+	websocketApiVersion = '1.1'
+	tyrusClientVersion = '1.1'
 	guavaVersion = '23.0'
 	nattyVersion = '0.13'
 	commonsLang3Version = '3.6'
@@ -40,6 +43,11 @@ dependencies {
 	compile('org.springframework.boot:spring-boot-starter-web')
 	compile('org.springframework.boot:spring-boot-starter-web-services')
 	compile("me.ramswaroop.jbot:jbot:${jbotVersion}")
+
+	compile("com.github.seratch:jslack:${jslackVersion}")
+	compile("javax.websocket:javax.websocket-api:${websocketApiVersion}")
+	compile("org.glassfish.tyrus.bundles:tyrus-standalone-client:${tyrusClientVersion}")
+
 	compile("com.google.guava:guava:${guavaVersion}")
 	compile("com.joestelmach:natty:${nattyVersion}")  // natural language date parser
 	compile("org.apache.commons:commons-lang3:${commonsLang3Version}")
