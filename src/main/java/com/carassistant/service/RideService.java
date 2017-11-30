@@ -8,13 +8,14 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Author: Vladimir Dobrikov (hedin.mail@gmail.com)
  */
 public interface RideService {
-    Ride findById(String id) throws RideNotFoundException;
-    Ride findByIdAndStatusIn(String id, List<Ride.Status> statuses) throws RideNotFoundException;
+    Optional<Ride> findById(String id) throws RideNotFoundException;
+    Optional<Ride> findByIdAndStatusIn(String id, List<Ride.Status> statuses);
     Iterable<Ride> findAll();
     Iterable<Ride> findAllByOwnerId(String ownerId);
     Iterable<Ride> findAllRelatedToUser(User user);

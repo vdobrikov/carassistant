@@ -1,27 +1,32 @@
 package com.carassistant.carbot.slack.message;
 
+import com.carassistant.carbot.slack.handler.ActionName;
 import com.carassistant.model.Ride;
 import com.carassistant.model.User;
-import com.carassistant.carbot.slack.handler.ActionValue;
 import com.github.seratch.jslack.api.model.Action;
 import com.github.seratch.jslack.api.model.Attachment;
 import com.github.seratch.jslack.api.model.Confirmation;
 import com.github.seratch.jslack.api.model.Field;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newLinkedList;
 
 /**
  * Author: Vladimir Dobrikov (hedin.mail@gmail.com)
  */
 public class RideView {
+    private static final List<Ride.Status> RIDE_ACTIVE_STATUSES = ImmutableList.of(Ride.Status.READY, Ride.Status.NOTIFIED_OWNER, Ride.Status.NOTIFIED_COMPANIONS);
+
     public static Attachment.AttachmentBuilder asAttachmentBuilder(Ride ride) {
         return Attachment.builder()
             .fields(RideView.asFields(ride));
@@ -32,7 +37,7 @@ public class RideView {
             .map(companion -> companion.getSlackInfo().getUserId())
             .map(companionSlackId -> String.format("<@%s>", companionSlackId))
             .collect(Collectors.toList());
-        return Lists.newArrayList(
+        return newArrayList(
             Field.builder().valueShortEnough(true).title("Departure Point").value(ride.getDeparturePoint()).build(),
             Field.builder().valueShortEnough(true).title("Destination Point").value(ride.getDestinationPoint()).build(),
             Field.builder().valueShortEnough(true).title("Departure Time").value(ride.getDepartureDate().format(DateTimeFormatter.ofPattern("MMM, dd HH:mm"))).build(),
@@ -41,53 +46,57 @@ public class RideView {
             Field.builder().valueShortEnough(true).title("Companions").value(Joiner.on(", ").join(companions)).build());
     }
 
-    public static List<Action> createActionsFor(Ride ride, User user) {
+    public static LinkedList<Action> createActionsFor(Ride ride, User user) {
+        if (!RIDE_ACTIVE_STATUSES.contains(ride.getStatus())) {
+            return newLinkedList();
+        }
         Set<AvailableActions> availableActions = getAvailableActionsFor(ride, user);
-        List<Action> actions = new ArrayList<>();
+        LinkedList<Action> actions = new LinkedList<>();
         if (availableActions.contains(AvailableActions.JOIN)) {
             actions.add(createActionBuilder(ride.getId())
                 .text("Join")
-                .value(ActionValue.JOIN)
+                .name(ActionName.JOIN)
                 .build());
         }
         if (availableActions.contains(AvailableActions.JOIN_PLUS_1)) {
             actions.add(createActionBuilder(ride.getId())
                 .text("Join (+1)")
-                .value(ActionValue.JOIN_PLUS_1)
+                .name(ActionName.JOIN_PLUS_1)
                 .build());
         }
         if (availableActions.contains(AvailableActions.UNJOIN)) {
             actions.add(createActionBuilder(ride.getId())
                 .text("Unjoin")
-                .value(ActionValue.UNJOIN)
+                .name(ActionName.UNJOIN)
                 .build());
         }
         if (availableActions.contains(AvailableActions.UNJOIN_ALL)) {
             actions.add(createActionBuilder(ride.getId())
                 .text("Unjoin All")
-                .value(ActionValue.UNJOIN_ALL)
+                .name(ActionName.UNJOIN_ALL)
                 .build());
         }
         if (availableActions.contains(AvailableActions.DELETE)) {
             actions.add(createActionBuilder(ride.getId())
                 .text("Delete")
-                .value(ActionValue.DELETE)
+                .name(ActionName.DELETE)
                 .style("danger")
                 .confirmation(
                     Confirmation.builder()
                         .title("Delete ride share")
-                        .text("Are you sure to delete your ride share?")
+                        .text("Are you sure?")
                         .ok_text("Delete")
                         .dismiss_text("Cancel")
+
                         .build())
                 .build());
         }
         return actions;
     }
 
-    private static Action.ActionBuilder createActionBuilder(String name) {
+    private static Action.ActionBuilder createActionBuilder(String value) {
         return Action.builder()
-            .name(name)
+            .value(value)
             .type(Action.Type.BUTTON);
     }
 

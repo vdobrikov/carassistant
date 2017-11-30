@@ -1,18 +1,17 @@
-package com.carassistant.carbot.slack.handler.interactivemessage;
+package com.carassistant.carbot.slack.handler.message;
 
+import com.carassistant.carbot.slack.framework.SlackApiClient;
+import com.carassistant.carbot.slack.framework.UserContext;
+import com.carassistant.carbot.slack.framework.annotation.SlackHandler;
+import com.carassistant.carbot.slack.framework.annotation.SlackMessageActionHandler;
+import com.carassistant.carbot.slack.framework.model.ActionPayload;
+import com.carassistant.carbot.slack.handler.ActionName;
+import com.carassistant.carbot.slack.handler.CallbackId;
+import com.carassistant.carbot.slack.message.RidesView;
 import com.carassistant.model.Ride;
 import com.carassistant.model.User;
 import com.carassistant.service.ConfigService;
 import com.carassistant.service.RideService;
-import com.carassistant.carbot.slack.framework.UserContext;
-import com.carassistant.carbot.slack.framework.annotation.SlackHandler;
-import com.carassistant.carbot.slack.framework.annotation.SlackInteractiveMessageActionHandler;
-import com.carassistant.carbot.slack.framework.model.ActionPayload;
-import com.carassistant.carbot.slack.handler.ActionValue;
-import com.carassistant.carbot.slack.handler.CallbackId;
-import com.carassistant.carbot.slack.message.DeleteLastMessage;
-import com.carassistant.carbot.slack.message.RidesView;
-import com.github.seratch.jslack.Slack;
 import com.github.seratch.jslack.api.methods.SlackApiException;
 import com.github.seratch.jslack.api.methods.SlackApiResponse;
 import com.github.seratch.jslack.api.methods.request.chat.ChatPostMessageRequest;
@@ -35,39 +34,40 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static com.carassistant.carbot.slack.message.CommonRequests.deleteOriginalMessage;
+
 /**
  * Author: Vladimir Dobrikov (hedin.mail@gmail.com)
  */
-@SlackHandler(callbackId = CallbackId.GENERIC_INITIAL_PROMPT)
-public class GenericInitialMessageHandler {
+@SlackHandler(callbackId = CallbackId.RIDE_INITIAL_PROMPT)
+public class RideInitialMessageHandler {
     private static final List<Ride.Status> RIDE_ACTIVE_STATUSES = ImmutableList.of(Ride.Status.READY, Ride.Status.NOTIFIED_OWNER, Ride.Status.NOTIFIED_COMPANIONS);
 
-    private String botAccessToken;
     private int pageSize;
     private RideService rideService;
     private ConfigService configService;
     private UserContext userContext;
+    private SlackApiClient slackApiClient;
 
     @Autowired
-    public GenericInitialMessageHandler(@Value("${slack.bot.access.token}") String botAccessToken,
-                                        @Value("${slack.pagination.size}") int pageSize,
-                                        RideService rideService,
-                                        ConfigService configService,
-                                        UserContext userContext) {
-        this.botAccessToken = botAccessToken;
+    public RideInitialMessageHandler(@Value("${slack.pagination.size}") int pageSize,
+                                     RideService rideService,
+                                     ConfigService configService,
+                                     UserContext userContext,
+                                     SlackApiClient slackApiClient) {
         this.pageSize = pageSize;
         this.rideService = rideService;
         this.configService = configService;
         this.userContext = userContext;
+        this.slackApiClient = slackApiClient;
     }
 
-    @SlackInteractiveMessageActionHandler(actionValue = ActionValue.CANCEL)
+    @SlackMessageActionHandler(actionName = ActionName.CANCEL)
     public SlackApiResponse onCancel(ActionPayload payload) throws IOException, SlackApiException {
-        return Slack.getInstance().methods()
-            .chatDelete(DeleteLastMessage.createRequest(botAccessToken, payload));
+        return slackApiClient.send(deleteOriginalMessage(payload));
     }
 
-    @SlackInteractiveMessageActionHandler(actionValue = ActionValue.RIDE_SHARE)
+    @SlackMessageActionHandler(actionName = ActionName.RIDE_SHARE)
     public SlackApiResponse onRideShare(ActionPayload payload) throws IOException, SlackApiException {
         String departurePoint = null;
         String destinationPoint = null;
@@ -77,9 +77,7 @@ public class GenericInitialMessageHandler {
         Map<String, String> locations = configService.getLocations();
         departurePoint = locations.get(localUser.getLocation());
 
-        return Slack.getInstance().methods()
-            .dialogOpen(DialogOpenRequest.builder()
-                .token(botAccessToken)
+        return slackApiClient.send(DialogOpenRequest.builder()
                 .triggerId(payload.getTriggerId())
                 .dialog(Dialog.builder()
                     .title("Ride Sharing")
@@ -134,7 +132,7 @@ public class GenericInitialMessageHandler {
                 .build());
     }
 
-    @SlackInteractiveMessageActionHandler(actionValue = ActionValue.RIDE_LIST)
+    @SlackMessageActionHandler(actionName = ActionName.RIDE_LIST)
     public SlackApiResponse onRideList(ActionPayload payload) throws IOException, SlackApiException {
         User localUser = userContext.getUser();
 
@@ -152,16 +150,14 @@ public class GenericInitialMessageHandler {
             attachments = null;
         }
 
-        return Slack.getInstance().methods()
-            .chatPostMessage(ChatPostMessageRequest.builder()
-                .token(botAccessToken)
+        return slackApiClient.send(ChatPostMessageRequest.builder()
                 .channel(payload.getChannel().getId())
                 .text(text)
                 .attachments(attachments)
                 .build());
     }
 
-    @SlackInteractiveMessageActionHandler(actionValue = ActionValue.RIDE_LIST_MY)
+    @SlackMessageActionHandler(actionName = ActionName.RIDE_LIST_MY)
     public SlackApiResponse onRideListMy(ActionPayload payload) throws IOException, SlackApiException {
         User localUser = userContext.getUser();
 
@@ -182,9 +178,7 @@ public class GenericInitialMessageHandler {
             attachments = null;
         }
 
-        return Slack.getInstance().methods()
-            .chatPostMessage(ChatPostMessageRequest.builder()
-                .token(botAccessToken)
+        return slackApiClient.send(ChatPostMessageRequest.builder()
                 .channel(payload.getChannel().getId())
                 .text(text)
                 .attachments(attachments)

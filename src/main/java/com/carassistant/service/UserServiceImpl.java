@@ -2,7 +2,6 @@ package com.carassistant.service;
 
 import com.carassistant.event.user.UserCreatedEvent;
 import com.carassistant.event.user.UserDeletedEvent;
-import com.carassistant.exception.UserNotFoundException;
 import com.carassistant.model.User;
 import com.carassistant.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,20 +30,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findById(String id) {
-        return Optional.ofNullable(userRepository.findOne(id))
-            .orElseThrow(() -> new UserNotFoundException("id=" + id));
+    public Optional<User> findById(String id) {
+        return Optional.ofNullable(userRepository.findOne(id));
     }
 
     @Override
-    public User findOneBySlackInfoUserId(String slackId) {
-        return Optional.ofNullable(userRepository.findOneBySlackInfoUserId(slackId))
-            .orElseThrow(() -> new UserNotFoundException("slackId=" + slackId));
-    }
-
-    @Override
-    public User findOneBySlackInfoUserIdWithoutException(String slackId) {
-        return userRepository.findOneBySlackInfoUserId(slackId);
+    public Optional<User> findOneBySlackInfoUserId(String slackId) {
+        return Optional.ofNullable(userRepository.findOneBySlackInfoUserId(slackId));
     }
 
     @Override

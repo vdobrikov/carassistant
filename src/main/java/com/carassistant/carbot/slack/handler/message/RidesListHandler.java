@@ -1,16 +1,16 @@
-package com.carassistant.carbot.slack.handler.interactivemessage;
+package com.carassistant.carbot.slack.handler.message;
 
+import com.carassistant.carbot.slack.framework.SlackApiClient;
+import com.carassistant.carbot.slack.framework.UserContext;
+import com.carassistant.carbot.slack.framework.annotation.SlackHandler;
+import com.carassistant.carbot.slack.framework.annotation.SlackMessageActionHandler;
+import com.carassistant.carbot.slack.framework.model.ActionPayload;
+import com.carassistant.carbot.slack.handler.ActionName;
+import com.carassistant.carbot.slack.handler.CallbackId;
+import com.carassistant.carbot.slack.message.RidesView;
 import com.carassistant.model.Ride;
 import com.carassistant.model.User;
 import com.carassistant.service.RideService;
-import com.carassistant.carbot.slack.framework.UserContext;
-import com.carassistant.carbot.slack.framework.annotation.SlackHandler;
-import com.carassistant.carbot.slack.framework.annotation.SlackInteractiveMessageActionHandler;
-import com.carassistant.carbot.slack.framework.model.ActionPayload;
-import com.carassistant.carbot.slack.handler.ActionValue;
-import com.carassistant.carbot.slack.handler.CallbackId;
-import com.carassistant.carbot.slack.message.RidesView;
-import com.github.seratch.jslack.Slack;
 import com.github.seratch.jslack.api.methods.SlackApiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,33 +25,33 @@ import java.io.IOException;
  */
 @SlackHandler(callbackId = CallbackId.RIDE_LIST)
 public class RidesListHandler {
-    private String botAccessToken;
     private int pageSize;
     private RideService rideService;
     private UserContext userContext;
+    private SlackApiClient slackApiClient;
 
     @Autowired
-    public RidesListHandler(@Value("${slack.bot.access.token}") String botAccessToken,
-                            @Value("${slack.pagination.size}") int pageSize,
-                            RideService rideService, UserContext userContext) {
+    public RidesListHandler(@Value("${slack.pagination.size}") int pageSize,
+                            RideService rideService, UserContext userContext,
+                            SlackApiClient slackApiClient) {
 
-        this.botAccessToken = botAccessToken;
         this.pageSize = pageSize;
         this.rideService = rideService;
         this.userContext = userContext;
+        this.slackApiClient = slackApiClient;
     }
 
-    @SlackInteractiveMessageActionHandler(actionValue = ActionValue.NEXT)
+    @SlackMessageActionHandler(actionName = ActionName.NEXT)
     public void onNext(ActionPayload payload) throws IOException, SlackApiException {
-        int pageNum = Integer.parseInt(payload.getActions().get(0).getName());
+        int pageNum = Integer.parseInt(payload.getActions().get(0).getValue());
         pageNum++;
         sendRidesList(payload, pageNum);
 
     }
 
-    @SlackInteractiveMessageActionHandler(actionValue = ActionValue.PREV)
+    @SlackMessageActionHandler(actionName = ActionName.PREV)
     public void onPrev(ActionPayload payload) throws IOException, SlackApiException {
-        int pageNum = Integer.parseInt(payload.getActions().get(0).getName());
+        int pageNum = Integer.parseInt(payload.getActions().get(0).getValue());
         pageNum--;
         sendRidesList(payload, pageNum);
 
@@ -62,7 +62,6 @@ public class RidesListHandler {
         Page<Ride> ridesPage = rideService.findAllByStatusAndLocation(Ride.Status.READY, user.getLocation(),
             new PageRequest(pageNum, pageSize, Sort.Direction.DESC, "createdDate"));
 
-        Slack.getInstance().methods()
-            .chatUpdate(RidesView.createUpdateRequest(botAccessToken, CallbackId.RIDE_LIST, payload, ridesPage, user));
+        slackApiClient.send(RidesView.createUpdateRequest(CallbackId.RIDE_LIST, payload, ridesPage, user));
     }
 }

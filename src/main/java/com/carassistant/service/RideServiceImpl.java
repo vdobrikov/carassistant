@@ -1,5 +1,6 @@
 package com.carassistant.service;
 
+import com.carassistant.event.ride.RideDepartureDateChangedEvent;
 import com.carassistant.model.Ride;
 import com.carassistant.repository.RideRepository;
 import com.carassistant.event.ride.RideLifecycleEvent;
@@ -35,15 +36,13 @@ public class RideServiceImpl implements RideService {
     }
 
     @Override
-    public Ride findById(String id) {
-        return Optional.ofNullable(rideRepository.findOne(id))
-            .orElseThrow(() -> new RideNotFoundException("id=" + id));
+    public Optional<Ride> findById(String id) {
+        return Optional.ofNullable(rideRepository.findOne(id));
     }
 
     @Override
-    public Ride findByIdAndStatusIn(String id, List<Ride.Status> statuses) throws RideNotFoundException {
-        return Optional.ofNullable(rideRepository.findOneByIdAndStatusIn(id, statuses))
-            .orElseThrow(() -> new RideNotFoundException(String.format("id=%s statuses=%s", id, statuses)));
+    public Optional<Ride> findByIdAndStatusIn(String id, List<Ride.Status> statuses) throws RideNotFoundException {
+        return Optional.ofNullable(rideRepository.findOneByIdAndStatusIn(id, statuses));
     }
 
     @Override
@@ -84,12 +83,15 @@ public class RideServiceImpl implements RideService {
         }
         ride = rideRepository.save(ride);
 
-        if (rideBefore == null || ride.getStatus() != rideBefore.getStatus()) {
-            if (rideBefore == null) {
+        if (rideBefore != null) {
+            if (rideBefore.getStatus() != ride.getStatus()) {
                 eventPublisher.publishEvent(new RideLifecycleEvent(ride, null, ride.getStatus()));
-            } else {
-                eventPublisher.publishEvent(new RideLifecycleEvent(ride, rideBefore.getStatus(), ride.getStatus()));
             }
+            if (rideBefore.getDepartureDate() != ride.getDepartureDate()) {
+                eventPublisher.publishEvent(new RideDepartureDateChangedEvent(ride, rideBefore.getDepartureDate()));
+            }
+        } else {
+            eventPublisher.publishEvent(new RideLifecycleEvent(ride, null, ride.getStatus()));
         }
         return ride;
     }

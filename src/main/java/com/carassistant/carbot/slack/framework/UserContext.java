@@ -27,7 +27,7 @@ public class UserContext {
     }
 
     public void setUser(User user) {
-        Assert.isNull(this.user, "'user' is immutable, thus cannot be set 2+ times");
+        Assert.isNull(this.user, "'user' is immutable, thus can be set only once");
         this.user = user;
     }
 
@@ -36,7 +36,7 @@ public class UserContext {
     }
 
     public User setUserFromSlackIdIfExists(String slackUserId) {
-        setUser(userService.findOneBySlackInfoUserIdWithoutException(slackUserId));
+        setUser(userService.findOneBySlackInfoUserId(slackUserId).orElse(null));
         return getUser();
     }
 }

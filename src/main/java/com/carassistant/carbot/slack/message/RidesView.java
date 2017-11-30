@@ -3,7 +3,7 @@ package com.carassistant.carbot.slack.message;
 import com.carassistant.model.Ride;
 import com.carassistant.model.User;
 import com.carassistant.carbot.slack.framework.model.ActionPayload;
-import com.carassistant.carbot.slack.handler.ActionValue;
+import com.carassistant.carbot.slack.handler.ActionName;
 import com.github.seratch.jslack.api.methods.request.chat.ChatPostMessageRequest;
 import com.github.seratch.jslack.api.methods.request.chat.ChatUpdateRequest;
 import com.github.seratch.jslack.api.model.Action;
@@ -19,17 +19,15 @@ import java.util.stream.Collectors;
  */
 public class RidesView {
 
-    public static ChatPostMessageRequest createPostRequest(String botAccessToken, String callbackId, ActionPayload payload, Page<Ride> ridesPage, User user) {
+    public static ChatPostMessageRequest createPostRequest(String callbackId, ActionPayload payload, Page<Ride> ridesPage, User user) {
         return ChatPostMessageRequest.builder()
-            .token(botAccessToken)
             .channel(payload.getChannel().getId())
             .attachments(createAttachmentsFor(callbackId, user, ridesPage))
             .build();
     }
 
-    public static ChatUpdateRequest createUpdateRequest(String botAccessToken, String callbackId, ActionPayload payload, Page<Ride> ridesPage, User user) {
+    public static ChatUpdateRequest createUpdateRequest(String callbackId, ActionPayload payload, Page<Ride> ridesPage, User user) {
         return ChatUpdateRequest.builder()
-            .token(botAccessToken)
             .channel(payload.getChannel().getId())
             .ts(payload.getMessageTs())
             .attachments(createAttachmentsFor(callbackId, user, ridesPage))
@@ -63,18 +61,18 @@ public class RidesView {
         List<Action> actions = new ArrayList<>();
         if (ridesPage.hasPrevious()) {
             actions.add(Action.builder()
-                .name(String.valueOf(ridesPage.getNumber()))
+                .name(ActionName.PREV)
                 .text("Prev")
                 .type(Action.Type.BUTTON)
-                .value(ActionValue.PREV)
+                .value(String.valueOf(ridesPage.getNumber()))
                 .build());
         }
         if (ridesPage.hasNext()) {
             actions.add(Action.builder()
-                .name(String.valueOf(ridesPage.getNumber()))
+                .name(ActionName.NEXT)
                 .text("Next")
                 .type(Action.Type.BUTTON)
-                .value(ActionValue.NEXT)
+                .value(String.valueOf(ridesPage.getNumber()))
                 .build());
         }
         return actions;

@@ -3,7 +3,7 @@ package com.carassistant.carbot.slack.handler;
 /**
  * Author: Vladimir Dobrikov (hedin.mail@gmail.com)
  */
-public interface ActionValue {
+public interface ActionName {
     String OK = "ok";
     String USER_DETAILS = "user-details";
     String CANCEL = "cancel";
@@ -14,6 +14,7 @@ public interface ActionValue {
     String JOIN_PLUS_1 = "join-plus-1";
     String UNJOIN = "unjoin";
     String UNJOIN_ALL = "unjoin-all";
+    String SNOOZE = "snooze";
     String DELETE = "delete";
     String NEXT = "next";
     String PREV = "prev";

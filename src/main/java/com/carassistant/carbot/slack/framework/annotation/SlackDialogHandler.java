@@ -10,7 +10,6 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface SlackInteractiveMessageActionHandler {
+public @interface SlackDialogHandler {
     String callbackId() default "";
-    String[] actionValue() default "";
 }

@@ -1,10 +1,12 @@
 package com.carassistant.carbot.slack.framework.dispatcher;
 
-import com.carassistant.carbot.slack.framework.annotation.SlackDialogSubmissionHandler;
 import com.carassistant.carbot.slack.framework.annotation.SlackHandler;
+import com.carassistant.carbot.slack.framework.annotation.SlackMessageActionHandler;
 import com.carassistant.carbot.slack.framework.exception.SlackHandlerInitException;
 import com.carassistant.carbot.slack.framework.model.ActionPayload;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +19,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,24 +27,24 @@ import java.util.Optional;
  */
 
 @Component
-public class SlackDialogSubmissionDispatcher extends SlackAbstractDispatcher {
-    private static final Logger LOG = LoggerFactory.getLogger(SlackDialogSubmissionDispatcher.class);
+public class SlackMessageActionDispatcher extends SlackAbstractDispatcher {
+    private static final Logger LOG = LoggerFactory.getLogger(SlackMessageActionDispatcher.class);
 
     private ApplicationContext applicationContext;
-    private Map<String, HandlerWrapper> callbacksHandlers;
+    private Table<String, String, HandlerWrapper> callbacksActionsHandlers;
 
     @Autowired
-    public SlackDialogSubmissionDispatcher(ApplicationContext applicationContext) {
+    public SlackMessageActionDispatcher(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 
     @PostConstruct
     private void init() throws SlackHandlerInitException {
-        Map<String, HandlerWrapper> callbacksHandlers = new HashMap<>();
+        Table<String, String, HandlerWrapper> callbacksActionsHandlers = HashBasedTable.create();
 
         Map<String, Object> beans = applicationContext.getBeansWithAnnotation(SlackHandler.class);
         for (Object rawHandler : beans.values()) {
-            // With OAP
+            // With AOP
             Class<?> handlerClass = AopUtils.getTargetClass(rawHandler);
             // Without AOP
             // Class<?> handlerClass = rawHandler.getClass();
@@ -51,7 +52,7 @@ public class SlackDialogSubmissionDispatcher extends SlackAbstractDispatcher {
             String classCallbackId = (String) AnnotationUtils.getValue(classAnnotation, "callbackId");
 
             for (Method method : handlerClass.getMethods()) {
-                SlackDialogSubmissionHandler methodAnnotation = AnnotationUtils.getAnnotation(method, SlackDialogSubmissionHandler.class);
+                SlackMessageActionHandler methodAnnotation = AnnotationUtils.getAnnotation(method, SlackMessageActionHandler.class);
                 if (methodAnnotation == null) {
                     continue;
                 }
@@ -70,33 +71,47 @@ public class SlackDialogSubmissionDispatcher extends SlackAbstractDispatcher {
                 if (StringUtils.isBlank(callbackId)) {
                     throw new SlackHandlerInitException(handlerClass, method, "'callbackId' cannot be null or empty");
                 }
-
-                HandlerWrapper registeredHandler = callbacksHandlers.get(methodCallbackId);
-                if (registeredHandler != null) {
-                    throw new SlackHandlerInitException(handlerClass, method,
-                        String.format("Callback '%s' already registered as %s",
-                            callbackId, registeredHandler));
+                if (StringUtils.isBlank(callbackId)) {
+                    throw new SlackHandlerInitException(handlerClass, method, "'callbackId' cannot be null or empty");
                 }
-                HandlerWrapper handler = new HandlerWrapper(rawHandler, method);
-                callbacksHandlers.put(callbackId, handler);
-                LOG.debug("Handler registered: {}: {}", callbackId, handler);
+
+                String[] actionNames = (String[]) AnnotationUtils.getValue(methodAnnotation, "actionName");
+
+                if (actionNames.length == 0) {
+                    throw new SlackHandlerInitException(handlerClass, method, "'actionName' cannot be empty array");
+                }
+                for (String actionName : actionNames) {
+                    if (StringUtils.isBlank(actionName)) {
+                        throw new SlackHandlerInitException(handlerClass, method, "'actionName' cannot be null or empty");
+                    }
+
+                    HandlerWrapper registeredHandler = callbacksActionsHandlers.get(callbackId, actionName);
+                    if (registeredHandler != null) {
+                        throw new SlackHandlerInitException(handlerClass, method,
+                            String.format("Callback:action '%s:%s' already registered as %s",
+                                callbackId, actionName, registeredHandler));
+                    }
+                    HandlerWrapper handler = new HandlerWrapper(rawHandler, method);
+                    callbacksActionsHandlers.put(callbackId, actionName, handler);
+                    LOG.debug("Handler registered: {}:{}: {}", callbackId, actionName, handler);
+                }
             }
         }
-        this.callbacksHandlers = ImmutableMap.copyOf(callbacksHandlers);
+        this.callbacksActionsHandlers = ImmutableTable.copyOf(callbacksActionsHandlers);
     }
 
     @Override
     public Optional<HandlerWrapper> getHandlerFor(ActionPayload payload) {
         validate(payload);
-        return Optional.ofNullable(getHandlerFor(payload.getCallbackId()));
+        return Optional.ofNullable(getHandlerFor(payload.getCallbackId(), payload.getActions().get(0).getName()));
     }
 
-    private HandlerWrapper getHandlerFor(String callback) {
-        return callbacksHandlers.get(callback);
+    private HandlerWrapper getHandlerFor(String callback, String action) {
+        return callbacksActionsHandlers.get(callback, action);
     }
 
     @Override
     public String getDispatchedType() {
-        return "dialog_submission";
+        return "interactive_message";
     }
 }

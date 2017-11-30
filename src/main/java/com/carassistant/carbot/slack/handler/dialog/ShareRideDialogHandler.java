@@ -1,19 +1,19 @@
-package com.carassistant.carbot.slack.handler.dialogsubmission;
+package com.carassistant.carbot.slack.handler.dialog;
 
-import com.carassistant.model.Ride;
+import com.carassistant.carbot.slack.framework.SlackApiClient;
 import com.carassistant.carbot.slack.framework.UserContext;
+import com.carassistant.carbot.slack.framework.annotation.SlackDialogHandler;
 import com.carassistant.carbot.slack.framework.annotation.SlackHandler;
 import com.carassistant.carbot.slack.framework.model.ActionPayload;
+import com.carassistant.carbot.slack.framework.model.DialogSubmissionError;
 import com.carassistant.carbot.slack.framework.model.DialogSubmissionErrorsResponse;
+import com.carassistant.carbot.slack.handler.ActionName;
 import com.carassistant.carbot.slack.handler.CallbackId;
+import com.carassistant.carbot.slack.message.RideView;
 import com.carassistant.exception.ValueValidationException;
+import com.carassistant.model.Ride;
 import com.carassistant.model.User;
 import com.carassistant.service.RideService;
-import com.carassistant.carbot.slack.framework.annotation.SlackDialogSubmissionHandler;
-import com.carassistant.carbot.slack.framework.model.DialogSubmissionError;
-import com.carassistant.carbot.slack.handler.ActionValue;
-import com.carassistant.carbot.slack.message.RideView;
-import com.github.seratch.jslack.Slack;
 import com.github.seratch.jslack.api.methods.SlackApiException;
 import com.github.seratch.jslack.api.methods.request.chat.ChatPostMessageRequest;
 import com.github.seratch.jslack.api.model.Action;
@@ -38,26 +38,25 @@ import java.util.List;
  * Author: Vladimir Dobrikov (hedin.mail@gmail.com)
  */
 @SlackHandler
-public class ShareRideDialogSubmissionHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(ShareRideDialogSubmissionHandler.class);
+public class ShareRideDialogHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(ShareRideDialogHandler.class);
 
-    private String botAccessToken;
     private String datetimeFormat;
     private RideService rideService;
     private UserContext userContext;
+    private SlackApiClient slackApiClient;
 
     @Autowired
-    public ShareRideDialogSubmissionHandler(@Value("${slack.bot.access.token}") String botAccessToken,
-                                            @Value("${default.datetime.format}") String datetimeFormat,
-                                            RideService rideService,
-                                            UserContext userContext) {
-        this.botAccessToken = botAccessToken;
+    public ShareRideDialogHandler(@Value("${default.datetime.format}") String datetimeFormat,
+                                  RideService rideService,
+                                  UserContext userContext, SlackApiClient slackApiClient) {
         this.datetimeFormat = datetimeFormat;
         this.rideService = rideService;
         this.userContext = userContext;
+        this.slackApiClient = slackApiClient;
     }
 
-    @SlackDialogSubmissionHandler(callbackId = CallbackId.RIDE_SHARE_DIALOG)
+    @SlackDialogHandler(callbackId = CallbackId.RIDE_SHARE_DIALOG)
     public DialogSubmissionErrorsResponse onSubmission(ActionPayload payload) throws IOException, SlackApiException {
         List<DialogSubmissionError> errors = new ArrayList<>();
 
@@ -101,9 +100,7 @@ public class ShareRideDialogSubmissionHandler {
         ride.setStatus(Ride.Status.PENDING_CONFIRMATION);
         ride = rideService.save(ride);
 
-        Slack.getInstance().methods()
-            .chatPostMessage(ChatPostMessageRequest.builder()
-                .token(botAccessToken)
+        slackApiClient.send(ChatPostMessageRequest.builder()
                 .channel(payload.getChannel().getId())
                 .text("How does it look like?")
                 .attachments(
@@ -112,8 +109,8 @@ public class ShareRideDialogSubmissionHandler {
                             .callbackId(CallbackId.RIDE_SHARE_CONFIRMATION)
                             .actions(
                                 Lists.newArrayList(
-                                    Action.builder().name(ride.getId()).text("Confirm").type(Action.Type.BUTTON).value(ActionValue.OK).style("primary").build(),
-                                    Action.builder().name(ride.getId()).text("Cancel").type(Action.Type.BUTTON).value(ActionValue.CANCEL).build()))
+                                    Action.builder().type(Action.Type.BUTTON).value(ride.getId()).text("Confirm").name(ActionName.OK).style("primary").build(),
+                                    Action.builder().type(Action.Type.BUTTON).value(ride.getId()).text("Cancel").name(ActionName.CANCEL).build()))
                             .build()))
                 .build());
         return null;

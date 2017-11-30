@@ -1,21 +1,15 @@
 package com.carassistant.carbot.slack.controller;
 
 import com.carassistant.carbot.slack.SlackTokenValidationException;
+import com.carassistant.carbot.slack.framework.SlackApiClient;
 import com.carassistant.carbot.slack.framework.UserContext;
 import com.carassistant.carbot.slack.framework.model.ChallengeResponse;
-import com.carassistant.carbot.slack.framework.model.Event;
 import com.carassistant.carbot.slack.framework.model.EventRequest;
 import com.carassistant.carbot.slack.framework.model.EventType;
-import com.carassistant.carbot.slack.handler.ActionValue;
-import com.carassistant.carbot.slack.handler.CallbackId;
-import com.carassistant.carbot.slack.message.InitialMessage;
-import com.github.seratch.jslack.Slack;
+import com.carassistant.carbot.slack.message.CommonRequests;
 import com.github.seratch.jslack.api.methods.SlackApiException;
 import com.github.seratch.jslack.api.methods.SlackApiResponse;
 import com.github.seratch.jslack.api.methods.request.chat.ChatPostMessageRequest;
-import com.github.seratch.jslack.api.model.Action;
-import com.github.seratch.jslack.api.model.Attachment;
-import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,15 +31,15 @@ public class SlackEventController {
     private static final Logger LOG = LoggerFactory.getLogger(SlackEventController.class);
 
     private String verificationToken;
-    private String botAccessToken;
     private UserContext userContext;
+    private SlackApiClient slackApiClient;
 
     public SlackEventController(@Value("${slack.verification.token}") String verificationToken,
-                                @Value("${slack.bot.access.token}") String botAccessToken,
-                                UserContext userContext) {
+                                UserContext userContext,
+                                SlackApiClient slackApiClient) {
         this.verificationToken = verificationToken;
-        this.botAccessToken = botAccessToken;
         this.userContext = userContext;
+        this.slackApiClient = slackApiClient;
     }
 
     @RequestMapping(value = "event",
@@ -68,18 +62,13 @@ public class SlackEventController {
             && EventType.MESSAGE.equals(request.getEvent().getType())) {
 
             String text = Optional.ofNullable(request.getEvent().getText()).orElse("");
-            LOG.info("Message: {}", text);
-            //if (text.matches("(?i)^(share\\s+ride|ride\\s+share)$")) {
+            LOG.info("text={}", text);
             String userId = request.getEvent().getUser();
             if (userId != null) { // null = self
                 setupUserContext(userId);
-                SlackApiResponse response;
-                if(!userContext.hasUser()) {
-                    response = replyWithUserInitialPromptTo(request.getEvent());
-                } else {
-                    response = replyWithGenericInitialPromptTo(request.getEvent());
-                }
-                LOG.info("response: {}", response);
+                SlackApiResponse response = replyToMessage(request.getEvent().getChannel(), text);
+                LOG.info("response={}", response);
+                return response;
             }
         }
 
@@ -87,27 +76,29 @@ public class SlackEventController {
         return null;
     }
 
-    private void setupUserContext(String slackUserId) {
-        userContext.setUserFromSlackIdIfExists(slackUserId);
-    }
-
-    private SlackApiResponse replyWithUserInitialPromptTo(Event event) throws IOException, SlackApiException {
-        return Slack.getInstance().methods().chatPostMessage(ChatPostMessageRequest.builder()
-            .token(botAccessToken)
-            .channel(event.getChannel())
-            .attachments(Lists.newArrayList(Attachment.builder()
-                .callbackId(CallbackId.USER_INITIAL_PROMPT)
-                .pretext("To proceed with this bot, your additional details are required")
-                .actions(Lists.newArrayList(
-                    Action.builder().name("user-initial-prompt").text("My Details").type(Action.Type.BUTTON).value(ActionValue.USER_DETAILS).build(),
-                    Action.builder().name("user-initial-prompt").text("Cancel").type(Action.Type.BUTTON).value(ActionValue.CANCEL).build()))
-                .build()))
+    private SlackApiResponse replyToMessage(String channelId, String text) throws IOException, SlackApiException {
+        if (text.matches("(?i)^user$")) {
+            return slackApiClient.send(CommonRequests.initialMessageUser(channelId));
+        } else if (!userContext.hasUser()) {
+            return slackApiClient.send(ChatPostMessageRequest.builder()
+                .channel(channelId)
+                .text("To proceed with this bot, your additional details are required. Please provide initial information with `user` command")
+                .build());
+        }
+        if (text.matches("(?i)^ride$")) {
+            return slackApiClient.send(CommonRequests.initialMessageRide(channelId));
+        }
+        return slackApiClient.send(ChatPostMessageRequest.builder()
+            .channel(channelId)
+            .text("Unknown command.\n" +
+                "Please try one of following:\n" +
+                "`user` - user options\n" +
+                "`ride` - rides options\n" +
+                "more to come...")
             .build());
     }
 
-    private SlackApiResponse replyWithGenericInitialPromptTo(Event event) throws IOException, SlackApiException {
-        return Slack.getInstance().methods().chatPostMessage(
-            InitialMessage.createMessage(botAccessToken, event.getChannel(), userContext.getUser()));
+    private void setupUserContext(String slackUserId) {
+        userContext.setUserFromSlackIdIfExists(slackUserId);
     }
-
 }

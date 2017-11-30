@@ -2,12 +2,12 @@ package com.carassistant.carbot.slack.framework.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.github.seratch.jslack.api.model.Action;
 import com.github.seratch.jslack.api.model.Channel;
 import com.github.seratch.jslack.api.model.Message;
 import com.github.seratch.jslack.api.model.Team;
 import com.github.seratch.jslack.api.model.User;
 import com.google.gson.annotations.SerializedName;
+import org.springframework.util.Assert;
 
 import java.util.List;
 import java.util.Map;
@@ -115,6 +115,11 @@ public class ActionPayload {
 
     public List<Action> getActions() {
         return actions;
+    }
+
+    public Action getFirstAction() {
+        Assert.notEmpty(getActions(), "'actions' is empty");
+        return getActions().get(0);
     }
 
     public String getCallbackId() {
