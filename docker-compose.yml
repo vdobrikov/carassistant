@@ -1,0 +1,27 @@
+version: '2.1'
+services:
+    carassistant:
+        image: carassistant:0.0.1-SNAPSHOT
+        restart: always
+        depends_on:
+            - mongo
+        ports:
+            - 8070:8070
+        links:
+            - mongo
+        environment:
+              - SLACK_ACCESS_TOKEN=${SLACK_ACCESS_TOKEN}
+              - SLACK_VERIFICATION_TOKEN=${SLACK_VERIFICATION_TOKEN}
+        logging:
+              options:
+                max-size: "10m"
+                max-file: "10"
+    mongo:
+        image: mongo
+        restart: always
+        ports:
+            - 27018:27017
+        logging:
+              options:
+                max-size: "10m"
+                max-file: "10"

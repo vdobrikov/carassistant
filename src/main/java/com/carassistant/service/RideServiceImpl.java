@@ -1,13 +1,15 @@
 package com.carassistant.service;
 
 import com.carassistant.event.ride.RideDepartureDateChangedEvent;
-import com.carassistant.model.Ride;
-import com.carassistant.repository.RideRepository;
 import com.carassistant.event.ride.RideLifecycleEvent;
 import com.carassistant.exception.RideNotFoundException;
+import com.carassistant.model.Ride;
 import com.carassistant.model.User;
+import com.carassistant.repository.RideRepository;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -24,6 +26,8 @@ import java.util.Optional;
 
 @Service
 public class RideServiceImpl implements RideService {
+    private static final Logger LOG = LoggerFactory.getLogger(RideServiceImpl.class);
+
     private static final List<Ride.Status> RIDE_ACTIVE_STATUSES = ImmutableList.of(Ride.Status.READY, Ride.Status.NOTIFIED_OWNER, Ride.Status.NOTIFIED_COMPANIONS);
 
     private RideRepository rideRepository;
@@ -37,12 +41,20 @@ public class RideServiceImpl implements RideService {
 
     @Override
     public Optional<Ride> findById(String id) {
-        return Optional.ofNullable(rideRepository.findOne(id));
+        Ride ride = rideRepository.findOne(id);
+        if (ride == null) {
+            LOG.warn("Ride not found: id={}", id);
+        }
+        return Optional.ofNullable(ride);
     }
 
     @Override
     public Optional<Ride> findByIdAndStatusIn(String id, List<Ride.Status> statuses) throws RideNotFoundException {
-        return Optional.ofNullable(rideRepository.findOneByIdAndStatusIn(id, statuses));
+        Ride ride = rideRepository.findOneByIdAndStatusIn(id, statuses);
+        if (ride == null) {
+            LOG.warn("Ride not found: id={} statuses={}", id, statuses);
+        }
+        return Optional.ofNullable(ride);
     }
 
     @Override
@@ -87,7 +99,7 @@ public class RideServiceImpl implements RideService {
             if (rideBefore.getStatus() != ride.getStatus()) {
                 eventPublisher.publishEvent(new RideLifecycleEvent(ride, null, ride.getStatus()));
             }
-            if (rideBefore.getDepartureDate() != ride.getDepartureDate()) {
+            if (!rideBefore.getDepartureDate().equals(ride.getDepartureDate())) {
                 eventPublisher.publishEvent(new RideDepartureDateChangedEvent(ride, rideBefore.getDepartureDate()));
             }
         } else {

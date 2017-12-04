@@ -1,0 +1,11 @@
+.gradle
+build/*
+gradle
+src/*
+build.gradle
+gradlew
+gradlew.build
+.git
+.cache
+.gitignore
+**/*.class

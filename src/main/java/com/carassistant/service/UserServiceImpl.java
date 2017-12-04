@@ -4,6 +4,8 @@ import com.carassistant.event.user.UserCreatedEvent;
 import com.carassistant.event.user.UserDeletedEvent;
 import com.carassistant.model.User;
 import com.carassistant.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import java.util.Optional;
  */
 @Service
 public class UserServiceImpl implements UserService {
+    private static final Logger LOG = LoggerFactory.getLogger(UserServiceImpl.class);
+
     private UserRepository userRepository;
     private ApplicationEventPublisher eventPublisher;
 
@@ -31,12 +35,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<User> findById(String id) {
-        return Optional.ofNullable(userRepository.findOne(id));
+        User user = userRepository.findOne(id);
+        if (user == null) {
+            LOG.warn("User not found: id={}", id);
+        }
+        return Optional.ofNullable(user);
     }
 
     @Override
     public Optional<User> findOneBySlackInfoUserId(String slackId) {
-        return Optional.ofNullable(userRepository.findOneBySlackInfoUserId(slackId));
+        User user = userRepository.findOneBySlackInfoUserId(slackId);
+        if (user == null) {
+            LOG.warn("User not found: slackId={}", slackId);
+        }
+        return Optional.ofNullable(user);
     }
 
     @Override

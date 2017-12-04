@@ -1,6 +1,9 @@
 ### overriding config ###
 /config/application.properties
 
+### env ###
+.env
+
 ### build ###
 .gradle
 /build/

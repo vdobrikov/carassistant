@@ -1,12 +1,14 @@
 buildscript {
 	ext {
 		springBootVersion = '1.5.8.RELEASE'
+        gradleDockerVersion = '1.2'
 	}
 	repositories {
 		mavenCentral()
 	}
 	dependencies {
 		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("se.transmode.gradle:gradle-docker:${gradleDockerVersion}")
 	}
 }
 
@@ -21,10 +23,17 @@ ext {
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
+apply plugin: 'docker'
+
+jar {
+	baseName = 'carassistant'
+	version = '0.1.0'
+}
 
 group = 'com.carassistant'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 repositories {
 	mavenCentral()
@@ -50,3 +59,17 @@ dependencies {
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 	testCompile('org.springframework.security:spring-security-test')
 }
+
+task buildDocker(type: Docker) {
+	description = 'Build Docker image'
+    baseImage = 'openjdk:8-jdk-alpine'
+    push = false
+    tag = "${jar.baseName}"
+    addFile {
+        from jar
+        rename {'app.jar'}
+    }
+    entryPoint(['java', '-Djava.security.egd=file:/dev/./urandom', '-Dspring.profiles.active=container', '-jar', '/app.jar'])
+}
+
+buildDocker.dependsOn(build)
