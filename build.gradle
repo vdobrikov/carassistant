@@ -13,7 +13,7 @@ buildscript {
 }
 
 ext {
-	jslackVersion = '1.0.14'
+	jslackVersion = '1.0.17'
 	guavaVersion = '23.0'
 	nattyVersion = '0.13'
 	commonsLang3Version = '3.6'
@@ -43,6 +43,8 @@ dependencies {
 	compile('org.springframework.boot:spring-boot-starter-data-mongodb')
 	compile('org.springframework.boot:spring-boot-starter-data-rest')
 	compile('org.springframework.boot:spring-boot-starter-web-services')
+	compile('org.springframework.boot:spring-boot-starter-actuator')
+	compile('org.springframework.data:spring-data-rest-hal-browser')
 
 	compile('org.springframework.boot:spring-boot-starter-mail') // Not yet used
 	compile('org.springframework.boot:spring-boot-starter-security') // Not yet used

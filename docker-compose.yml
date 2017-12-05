@@ -10,6 +10,7 @@ services:
         links:
             - mongo
         environment:
+              - ADMIN_PASSWORD=${ADMIN_PASSWORD}
               - SLACK_ACCESS_TOKEN=${SLACK_ACCESS_TOKEN}
               - SLACK_VERIFICATION_TOKEN=${SLACK_VERIFICATION_TOKEN}
         logging:
