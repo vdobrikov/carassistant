@@ -18,6 +18,7 @@ ext {
 	nattyVersion = '0.13'
 	commonsLang3Version = '3.6'
 	joptSimpleVersion = '5.0.4'
+	jacksonDatatypeVersion = '2.9.2'
 }
 
 apply plugin: 'java'
@@ -53,6 +54,7 @@ dependencies {
 
 	compile("com.github.seratch:jslack:${jslackVersion}") // Slack API client
 
+	compile("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonDatatypeVersion}")  // JSON data format
 	compile("com.google.guava:guava:${guavaVersion}")  // Generic utils
 	compile("com.joestelmach:natty:${nattyVersion}")  // natural language date parser
 	compile("org.apache.commons:commons-lang3:${commonsLang3Version}")  // Generic utils
